@@ -12,9 +12,12 @@ from linebot.models import *
 #models.py資料表
 from line002.models import *
 from line002.flex import *
-from line002.flex import *
-from line002.image_process import *
+from line002.image_processing import *
 
+import string
+import random
+import os
+import csv
 
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
 parser = WebhookParser(settings.LINE_CHANNEL_SECRET)
@@ -39,45 +42,37 @@ def callback(request):
 
         for event in events:
             if isinstance(event, MessageEvent):
-                #print(event.message.type)
-                message=[]
-                uid=event.source.user_id
-                profile=line_bot_api.get_profile(uid)
-                name=profile.display_name
+                # print(event.message.type)
                 if event.message.type=='text':
-                    mtext = event.message.text
-                    if 'jobs' in mtext:
-                            job = mtext.split(',')
-                            Jobs.objects.create(uid=uid,
-                                                name=name,
-                                                job_name=job[1],
-                                                percentage=job[2],
-                                                description=job[3])
-                            message.append(TextSendMessage(text='收到的工作內容為：'+str(job)))
-                            message.append(TextSendMessage(text='建立工作內容完成'))
-                            line_bot_api.reply_message(event.reply_token,message)
-                    elif "工作查詢" in mtext:
-                        message.append(jobs_progress(uid))
+                    mtest = event.message.text
+                    if "FlexTest" in mtest:
+                        message.append(flexexample())
                         line_bot_api.reply_message(event.reply_token,message)
-                    else:
+                    else:    
                         message.append(TextSendMessage(text='文字訊息'))
                         line_bot_api.reply_message(event.reply_token,message)
-
                 elif event.message.type=='image':
-
+                    image_name = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(4))
                     image_content = line_bot_api.get_message_content(event.message.id)
-                    path='./static/+'tmp.jpg'
+                    image_name = image_name.upper()+'.png'
+                    path='./static/'+image_name
                     with open(path, 'wb') as fd:
                         for chunk in image_content.iter_content():
                             fd.write(chunk)
-                    
+    
                     #將原圖存為灰階、二值化圖片
-                    gray,binary = image_processing_1(image_name,path)
-                    domain = 'eaedbc149726.ngrok.io'
+                    gray,binary,contour = image_processing_1(image_name,path)
+
+                    domain = 'b3c4322ec312.ngrok.io'
+
                     gray = 'https://'+domain+gray[1:]
                     binary = 'https://'+domain+binary[1:]
+                    contour = 'https://'+domain+contour[1:]
+
                     message.append(ImageSendMessage(original_content_url=gray,preview_image_url=gray))
                     message.append(ImageSendMessage(original_content_url=binary,preview_image_url=binary))
+                    message.append(ImageSendMessage(original_content_url=contour,preview_image_url=contour))
+
                     line_bot_api.reply_message(event.reply_token,message)
 
                 elif event.message.type=='location':
