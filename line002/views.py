@@ -13,6 +13,8 @@ from linebot.models import *
 from line002.models import *
 from line002.flex import *
 from line002.flex import *
+from line002.image_process import *
+
 
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
 parser = WebhookParser(settings.LINE_CHANNEL_SECRET)
@@ -62,7 +64,20 @@ def callback(request):
                         line_bot_api.reply_message(event.reply_token,message)
 
                 elif event.message.type=='image':
-                    message.append(TextSendMessage(text='圖片訊息'))
+
+                    image_content = line_bot_api.get_message_content(event.message.id)
+                    path='./static/+'tmp.jpg'
+                    with open(path, 'wb') as fd:
+                        for chunk in image_content.iter_content():
+                            fd.write(chunk)
+                    
+                    #將原圖存為灰階、二值化圖片
+                    gray,binary = image_processing_1(image_name,path)
+                    domain = 'eaedbc149726.ngrok.io'
+                    gray = 'https://'+domain+gray[1:]
+                    binary = 'https://'+domain+binary[1:]
+                    message.append(ImageSendMessage(original_content_url=gray,preview_image_url=gray))
+                    message.append(ImageSendMessage(original_content_url=binary,preview_image_url=binary))
                     line_bot_api.reply_message(event.reply_token,message)
 
                 elif event.message.type=='location':
